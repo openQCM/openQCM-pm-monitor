@@ -2153,6 +2153,7 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.flow_curve.setData(empty, empty)
         self.cycle_freq_curve.setData(empty, empty)
         self.cycle_diss_curve.setData(empty, empty)
+        self.cycle_diss_scatter.setData(empty, empty)
         self.mass_bars.setOpts(x=[], height=[], width=0.6)
         self.conc_bars.setOpts(x=[], height=[], width=0.6)
         self.trend_freq_curve.setData(empty, empty)
