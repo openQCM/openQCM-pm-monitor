@@ -940,13 +940,20 @@ class OpenQCMAerosolGUI(QMainWindow):
     # CONNECTION METHODS
     # =========================================================================
 
+    # USB Vendor ID for Teensy (PJRC / Van Ooijen Technische Informatica).
+    # Cross-platform identifier from the USB descriptor — works on macOS,
+    # Windows and Linux regardless of how the OS labels the COM port.
+    TEENSY_VID = 0x16C0
+
     def _refresh_ports(self):
         self.port_combo.clear()
-        ports = serial.tools.list_ports.comports()
-        for p in ports:
-            self.port_combo.addItem(f"{p.device} - {p.description}")
-        if not ports:
-            self.port_combo.addItem("No ports found")
+        ports = [p for p in serial.tools.list_ports.comports()
+                 if p.vid == self.TEENSY_VID]
+        if ports:
+            for p in ports:
+                self.port_combo.addItem(f"{p.device} - {p.description}")
+        else:
+            self.port_combo.addItem("No Teensy device found")
 
     def _toggle_connection(self):
         if self.qcm is None:
