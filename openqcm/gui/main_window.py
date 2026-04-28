@@ -28,9 +28,9 @@ from PyQt5.QtWidgets import (
     QPushButton, QLabel, QSlider, QComboBox, QTextEdit, QGroupBox,
     QGridLayout, QSpinBox, QDoubleSpinBox, QCheckBox, QMessageBox,
     QProgressBar, QTabWidget, QFrame, QFileDialog, QStatusBar,
-    QSizePolicy, QScrollArea, QSplitter
+    QSizePolicy, QScrollArea, QSplitter, QMenu
 )
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal, pyqtSlot, QThread, QObject, QMetaObject
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal, pyqtSlot, QThread, QObject, QMetaObject, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon, QPixmap
 import pyqtgraph as pg
 from collections import deque
@@ -794,6 +794,17 @@ class OpenQCMAerosolGUI(QMainWindow):
 
         layout.addLayout(row4)
 
+        # Replace pyqtgraph default right-click menu with our compact one.
+        # Dual-axis plots need their secondary ViewBox passed in too,
+        # otherwise its independent default menu still pops up.
+        self._install_custom_menu(self.freq_plot,  [self.diss_viewbox])
+        self._install_custom_menu(self.cycle_plot, [self.cycle_diss_viewbox])
+        self._install_custom_menu(self.trend_plot, [self.trend_diss_viewbox])
+        self._install_custom_menu(self.mass_plot)
+        self._install_custom_menu(self.conc_plot)
+        self._install_custom_menu(self.flow_plot)
+        self._install_custom_menu(self.temp_plot)
+
     def _create_sweep_plots(self, layout):
         self.amp_plot = pg.PlotWidget(title="Amplitude Response")
         configure_plot_widget(self.amp_plot, left_label="Gain (dB)",
@@ -828,6 +839,12 @@ class OpenQCMAerosolGUI(QMainWindow):
             size=14, symbol='star', brush=pg.mkBrush(RED), pen=pg.mkPen('k', width=1)
         )
         self.amp_plot.addItem(self.gain_peak_marker)
+
+        # -3dB bandwidth markers (red squares at f_min and f_max)
+        self.bw_markers = pg.ScatterPlotItem(
+            size=10, symbol='s', brush=pg.mkBrush(RED), pen=pg.mkPen('k', width=1)
+        )
+        self.amp_plot.addItem(self.bw_markers)
 
         layout.addWidget(self.amp_plot)
 
@@ -868,6 +885,10 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.snr_plot.addItem(self.snr_threshold)
         self.snr_plot.setVisible(False)
         layout.addWidget(self.snr_plot)
+
+        # Replace pyqtgraph default right-click menu with our compact one
+        for p in (self.amp_plot, self.phase_plot, self.snr_plot):
+            self._install_custom_menu(p)
 
         results_frame = QFrame()
         results_frame.setStyleSheet(f"""
@@ -1059,6 +1080,54 @@ class OpenQCMAerosolGUI(QMainWindow):
         btn.setProperty("active", "true" if active else "false")
         btn.style().unpolish(btn)
         btn.style().polish(btn)
+
+    # =========================================================================
+    # PLOT CONTEXT MENU (replaces pyqtgraph default right-click menu)
+    # =========================================================================
+
+    def _install_custom_menu(self, plot, extra_viewboxes=()):
+        """Disable pyqtgraph's default right-click menu on a PlotWidget and
+        route right-clicks to our compact custom menu (Auto-scale / Reset Zoom
+        / Pan Mode / Select Mode).
+
+        For dual-axis plots, pass any secondary `ViewBox` instances added
+        manually to the scene via `extra_viewboxes` — those have their own
+        independent default menu that must be disabled separately.
+        """
+        plot.setMenuEnabled(False)
+        plot.getViewBox().setMenuEnabled(False)
+        for vb in extra_viewboxes:
+            vb.setMenuEnabled(False)
+        # Capture `plot` per-iteration via default arg to avoid late-binding
+        plot.scene().sigMouseClicked.connect(
+            lambda ev, p=plot: self._on_plot_right_click(p, ev)
+        )
+
+    def _on_plot_right_click(self, plot, event):
+        """Show the custom context menu when the user right-clicks a plot."""
+        if event.button() != Qt.RightButton:
+            return
+        menu = QMenu(self)
+        auto_scale_action = menu.addAction("Auto-scale")
+        reset_zoom_action = menu.addAction("Reset Zoom")
+        menu.addSeparator()
+        pan_mode_action = menu.addAction("Pan Mode")
+        select_mode_action = menu.addAction("Select Mode")
+
+        # Show the menu at the screen position of the click
+        pos = event.screenPos()
+        action = menu.exec_(QPoint(int(pos.x()), int(pos.y())))
+
+        vb = plot.getViewBox()
+        if action == auto_scale_action:
+            vb.enableAutoRange()
+        elif action == reset_zoom_action:
+            vb.autoRange()
+        elif action == pan_mode_action:
+            vb.setMouseMode(pg.ViewBox.PanMode)
+        elif action == select_mode_action:
+            vb.setMouseMode(pg.ViewBox.RectMode)
+        event.accept()
 
     def _check_hardware(self):
         if not self.qcm or not self.qcm.serial_connection:
@@ -2069,10 +2138,20 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.phase_peak_marker.setData([freqs[phase_idx]], [phase_display[phase_idx]])
 
         if 'f_min' in data and 'f_max' in data:
-            self.bw_region.setRegion([data['f_min']/1e6, data['f_max']/1e6])
+            f_min_mhz = data['f_min'] / 1e6
+            f_max_mhz = data['f_max'] / 1e6
+            self.bw_region.setRegion([f_min_mhz, f_max_mhz])
             self.bw_region.setVisible(True)
+            # Red square markers at the -3dB crossing points (peak − 3 dB)
+            peak_amp = amp_display[gain_idx]
+            threshold = peak_amp - 3.0
+            self.bw_markers.setData(
+                [f_min_mhz, f_max_mhz], [threshold, threshold]
+            )
+            self.bw_markers.setVisible(True)
         else:
             self.bw_region.setVisible(False)
+            self.bw_markers.setVisible(False)
 
         # TEC polling restart is handled by _stop_monitoring / _stop_cycle
 
@@ -2178,6 +2257,9 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.cycle_plot.enableAutoRange()
         self.cycle_diss_viewbox.enableAutoRange()
         self.mass_plot.enableAutoRange()
+        self.conc_plot.enableAutoRange()
+        self.trend_plot.enableAutoRange()
+        self.trend_diss_viewbox.enableAutoRange()
 
         # Sweep tab plots
         self.amp_plot.enableAutoRange()
