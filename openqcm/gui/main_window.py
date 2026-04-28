@@ -2221,8 +2221,13 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.cycle_meas_freqs.clear()
         self.cycle_meas_disses.clear()
 
-        # Reset time reference
-        self.start_time = None
+        # Reset time reference. If monitoring is still active we restart
+        # the time axis from now (otherwise _on_sweep_finished would drop
+        # incoming sweeps because start_time would be None).
+        if self.monitoring_active:
+            self.start_time = time.time()
+        else:
+            self.start_time = None
 
         # Clear all plot curves
         empty = []
@@ -2244,6 +2249,18 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.diss_card.set_value(0)
         self.mass_card.set_value(0)
         self.flow_card.set_value(0)
+
+        # Defensive re-disable of pyqtgraph default menu on every plot —
+        # ensures the old menu cannot reappear if some internal state was
+        # touched during the clear.
+        for plot in (self.freq_plot, self.cycle_plot, self.trend_plot,
+                     self.mass_plot, self.conc_plot,
+                     self.flow_plot, self.temp_plot,
+                     self.amp_plot, self.phase_plot, self.snr_plot):
+            plot.setMenuEnabled(False)
+            plot.getViewBox().setMenuEnabled(False)
+        for vb in (self.diss_viewbox, self.cycle_diss_viewbox, self.trend_diss_viewbox):
+            vb.setMenuEnabled(False)
 
         self._log("All plots cleared")
 
