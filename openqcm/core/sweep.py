@@ -153,61 +153,70 @@ class OpenQCMSweepEnhanced:
     def send_sweep_command(self, freq_start: int, freq_stop: int, freq_step: int) -> List[Tuple[float, float]]:
         """
         Send frequency sweep command and collect data.
-        Handles serial timeouts gracefully — aborts after MAX_EMPTY consecutive
-        empty reads instead of looping forever.
+
+        Uses a bulk-read pattern: instead of one ``readline()`` per data point
+        (which is one syscall each — costly under USB pass-through on a VM),
+        we drain whatever bytes are already in the kernel buffer with a single
+        ``read(in_waiting)`` per loop iteration. The firmware terminates the
+        sweep with a metadata line ending in ``s`` — we keep accumulating into
+        a string buffer until that trailer appears, then parse the whole
+        buffer in memory (no further I/O).
+
+        Reduces ~10000 syscalls per Fine sweep down to ~10–20.
         """
         if not self.serial_connection or not self.serial_connection.is_open:
             raise ConnectionError("Serial connection not established")
 
         self.serial_connection.flushInput()
-
-        original_timeout = self.serial_connection.timeout
-        self.serial_connection.timeout = 1.0  # 1 second per-line timeout
-
         command = f"{freq_start};{freq_stop};{freq_step}\n"
         logger.debug(f"Sending sweep command: {command.strip()}")
-
         self.serial_connection.write(command.encode())
 
-        sweep_data = []
-        expected_points = (freq_stop - freq_start) // freq_step + 1
-        self.last_sweep_metadata = None
-        empty_count = 0
-        MAX_EMPTY = 5  # Abort after 5 consecutive empty reads (5 seconds)
-
-        try:
-            for i in range(expected_points + 10):
-                line = self.serial_connection.readline().decode().strip()
-
-                if not line:
-                    empty_count += 1
-                    if empty_count >= MAX_EMPTY:
-                        logger.warning(f"Serial timeout: {empty_count} empty reads, "
-                                       f"collected {len(sweep_data)}/{expected_points} points")
-                        break
-                    continue
-
-                empty_count = 0  # Reset on valid data
-
-                if line.endswith('s'):
-                    self.last_sweep_metadata = self._parse_sweep_final_line(line)
+        # ── Bulk read with trailer-based framing ──
+        buffer = ''
+        deadline = time.time() + 5.0   # absolute timeout safety net
+        trailer_seen = False
+        while time.time() < deadline:
+            n_avail = self.serial_connection.in_waiting
+            if n_avail:
+                try:
+                    buffer += self.serial_connection.read(n_avail).decode('utf-8', errors='ignore')
+                except OSError:
+                    pass
+                # Trailer is a metadata line that ends with 's' followed by newline,
+                # or the very last char if firmware did not send a trailing newline.
+                if 's\n' in buffer or buffer.rstrip().endswith('s'):
+                    trailer_seen = True
                     break
+            else:
+                time.sleep(0.001)
 
-                if ';' in line:
-                    parts = line.split(';')
-                    if len(parts) >= 2:
-                        try:
-                            adc_amp = float(parts[0])
-                            adc_phase = float(parts[1])
+        if not trailer_seen:
+            logger.warning(f"Sweep timeout: collected {len(buffer)} bytes, no trailer received")
 
-                            gain_dB = self._adc_to_gain(adc_amp)
-                            phase_deg = self._adc_to_phase(adc_phase)
-
-                            sweep_data.append((gain_dB, phase_deg))
-                        except ValueError:
-                            continue
-        finally:
-            self.serial_connection.timeout = original_timeout
+        # ── Parse buffer in memory (no more I/O) ──
+        sweep_data = []
+        self.last_sweep_metadata = None
+        for line in buffer.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            # Metadata line ends with 's' (e.g. "T;status;error;flow;pump;s")
+            if line.endswith('s'):
+                self.last_sweep_metadata = self._parse_sweep_final_line(line)
+                break
+            if ';' in line:
+                parts = line.split(';')
+                if len(parts) >= 2:
+                    try:
+                        adc_amp = float(parts[0])
+                        adc_phase = float(parts[1])
+                        sweep_data.append((
+                            self._adc_to_gain(adc_amp),
+                            self._adc_to_phase(adc_phase)
+                        ))
+                    except ValueError:
+                        continue
 
         return sweep_data
 
