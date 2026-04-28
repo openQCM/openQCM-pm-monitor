@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Environments
+.env
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / agents
+.claude/
+.vscode/
+.idea/
+
+# Measurement session data (CSV logs are produced at runtime)
+data/*.csv
+data/*.json
+!data/.gitkeep

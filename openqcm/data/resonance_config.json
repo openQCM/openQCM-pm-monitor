@@ -1,0 +1,10 @@
+{
+  "initial_resonance_frequency": 10011600,
+  "current_resonance_frequency": 10011600,
+  "timestamp": 1777372772.72937,
+  "date_saved": "2026-04-28 12:39:32",
+  "port": "/dev/cu.usbmodem79897201",
+  "tracking_enabled": true,
+  "algorithm_version": "simplified_max_v2.1.0",
+  "dissipation_formula": "D = \u0394f\u208b\u2083dB / f\u2080"
+}
