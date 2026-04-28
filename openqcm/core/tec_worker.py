@@ -55,6 +55,7 @@ class TECWorker(QObject):
         # TEC state (tracked on worker thread)
         self._tec_enabled = False
         self._ignore_errors_cycles = 0
+        self._last_logged_status = None  # for change-only [TEC] polling print
         self._pid_params = {'C': 50, 'P': 500, 'I': 50, 'D': 300}
         self._setpoint_c = 25.0
         self._start_polling_after_enable = False
@@ -127,8 +128,10 @@ class TECWorker(QObject):
                 error = 0
 
             status = self._determine_status(temp_c, error)
-            if self._tec_enabled:
+            # Print only when status changes (avoids 1 line every 2s spam)
+            if self._tec_enabled and status != self._last_logged_status:
                 print(f"[TEC] Te={temp_c:.1f}°C  E={error}  A={current_mA:.1f}mA  status={status}")
+                self._last_logged_status = status
             self.readings_updated.emit(temp_c, status, error, current_mA)
             if flow is not None:
                 self.flow_updated.emit(flow)

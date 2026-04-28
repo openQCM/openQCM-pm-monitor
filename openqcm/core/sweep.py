@@ -230,7 +230,6 @@ class OpenQCMSweepEnhanced:
                 metadata['flow'] = float(parts[3])
                 metadata['pump_speed'] = int(parts[4])
                 metadata['valid'] = True
-                print(f"[META] T={metadata['temperature']:.1f}°C  status={metadata['tec_status']}  error={metadata['tec_error']}  flow={metadata['flow']:.3f}")
         except (ValueError, IndexError) as e:
             logger.warning(f"Failed to parse metadata from '{line}': {e}")
         
@@ -387,7 +386,7 @@ class OpenQCMSweepEnhanced:
             current_peak = self.find_current_resonance_peak(frequencies, amplitudes, phases)
             if current_peak:
                 resonance_freq = current_peak
-                logger.info(f"Resonance updated: {resonance_freq/1e6:.6f} MHz")
+                logger.debug(f"Resonance updated: {resonance_freq/1e6:.6f} MHz")
         
         # Include processed (interpolated) data in results for GUI plotting
         processed = getattr(self, '_last_processed', None)

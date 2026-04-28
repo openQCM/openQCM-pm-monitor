@@ -945,9 +945,9 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.cmd_combo.setMinimumWidth(80)
         cmd_layout.addWidget(self.cmd_combo)
 
-        send_btn = QPushButton("Send")
-        send_btn.clicked.connect(self._send_command)
-        cmd_layout.addWidget(send_btn)
+        self.send_cmd_btn = QPushButton("Send")
+        self.send_cmd_btn.clicked.connect(self._send_command)
+        cmd_layout.addWidget(self.send_cmd_btn)
 
         clear_btn = QPushButton("Clear")
         clear_btn.clicked.connect(self.console.clear)
@@ -1073,6 +1073,12 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.pump_slider.setEnabled(enabled)
         for btn in self.preset_buttons:
             btn.setEnabled(enabled)
+
+    def _set_console_enabled(self, enabled):
+        """Enable/disable manual console commands. Disabled during monitor or
+        cycle so user-typed commands cannot interfere with the state machine."""
+        self.cmd_combo.setEnabled(enabled)
+        self.send_cmd_btn.setEnabled(enabled)
 
     @staticmethod
     def _set_button_active(btn, active):
@@ -1347,6 +1353,7 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.find_peak_btn.setEnabled(False)
         self.sweep_btn.setEnabled(False)
         self.cycle_btn.setEnabled(False)
+        self._set_console_enabled(False)
 
         self.time_data.clear()
         self.freq_data.clear()
@@ -1398,6 +1405,7 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.find_peak_btn.setEnabled(True)
         self.sweep_btn.setEnabled(True)
         self.cycle_btn.setEnabled(True)
+        self._set_console_enabled(True)
         n = len(self.monitoring_history)
         self._log(f"Monitoring stopped — {n} measurements logged")
         self._update_status("Monitoring stopped")
@@ -1490,6 +1498,8 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.wait_spin.setEnabled(False)
         # Disable manual pump controls — state machine owns the pump now
         self._set_pump_controls_enabled(False)
+        # Disable console commands during the cycle
+        self._set_console_enabled(False)
 
         # Auto-enable TEC if not already active (reads current setpoint from widget)
         if not self.temp_control.is_enabled():
@@ -1545,6 +1555,8 @@ class OpenQCMAerosolGUI(QMainWindow):
         self.wait_spin.setEnabled(True)
         # Re-enable manual pump controls — cycle no longer owns the pump
         self._set_pump_controls_enabled(True)
+        # Re-enable console commands
+        self._set_console_enabled(True)
 
         # Restart hardware polling so flow card updates when idle (TEC is off,
         # but G? still comes through in _poll_cycle)
@@ -1599,10 +1611,6 @@ class OpenQCMAerosolGUI(QMainWindow):
     def _cycle_timer_expired(self):
         if not self.cycle_active:
             return
-        t_fire = time.time()
-        expected = getattr(self, 'cycle_state_start_time', t_fire)
-        elapsed = t_fire - expected
-        print(f"[CYCLE] timer_expired in state={self.cycle_state.name}  actual_elapsed={elapsed:.2f}s")
 
         if self.cycle_state == CycleState.REFERENCE:
             # Compute reference from median of last 1/3 of samples
@@ -1659,27 +1667,16 @@ class OpenQCMAerosolGUI(QMainWindow):
             v_avg = float(np.mean(self._pump_flow_samples))
         else:
             v_avg = 0.0
-        n_flow = len(self._pump_flow_samples)
-        flow_mode = "Analytical" if self.flow_mode_combo.currentIndex() == 0 else "Calibrated"
         if self.flow_mode_combo.currentIndex() == 0:  # Analytical
             d_m = self.outlet_diam_spin.value() / 1000.0
             area = math.pi * d_m ** 2 / 4.0
             q_m3s = v_avg * area
-            print(f"[CONC] mode={flow_mode}  D={d_m*1000:.1f}mm  area={area:.6e} m²")
         else:  # Calibrated
             k_cal = self.flow_kcal_spin.value()
             q_m3s = k_cal * v_avg / 60000.0
-            print(f"[CONC] mode={flow_mode}  K_cal={k_cal:.3f}")
         volume_m3 = q_m3s * t_pump  # m³
         mass_total_ug = delta_m * QUARTZ_AREA_CM2 / 1000.0  # ng/cm² × cm² → ng → µg
         concentration = mass_total_ug / volume_m3 if volume_m3 > 0 else 0.0  # µg/m³
-        print(f"[CONC] v_avg={v_avg:.3f} m/s  (N={n_flow} flow samples)  Q={q_m3s:.6e} m³/s  Q={q_m3s*60000:.4f} L/min")
-        print(f"[CONC] t_pump={t_pump:.3f}s (measured)  V={volume_m3:.6e} m³")
-        print(f"[CONC] Δf={delta_f:.2f} Hz  Δm={delta_m:.4f} ng/cm²  area_qcm={QUARTZ_AREA_CM2} cm²")
-        print(f"[CONC] mass_total={mass_total_ug:.6f} µg  C={concentration:.2f} µg/m³")
-        n_ref = len(self._ref_freq_samples)
-        n_meas = len(self._meas_freq_samples)
-        print(f"[CONC] ref_samples={n_ref}  meas_samples={n_meas}  ref_f={self.ref_frequency:.2f}  meas_f={freq:.2f}")
 
         self.cycle_count += 1
         self.cycle_freq_shifts.append(delta_f)
