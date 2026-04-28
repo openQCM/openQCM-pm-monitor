@@ -1305,9 +1305,17 @@ class OpenQCMAerosolGUI(QMainWindow):
             self._log(f"Data saved: {self.data_logger.filepath}")
             self.data_logger = None
 
-        # Restart TEC polling only if TEC is enabled (otherwise no need)
+        # Stop pump if running
+        if self.pump_active:
+            self._log("Auto-stopping pump at monitor stop")
+            self._set_pump_speed(0)
+
+        # Auto-disable TEC if active (counterpart to manual TEC enable during monitor)
         if self.temp_control.is_enabled():
-            self._tec_invoke("start_polling")
+            self._log("Auto-disabling TEC at monitor stop")
+            self._tec_disable_requested()
+        # Restart hardware polling so flow card keeps updating when idle
+        self._tec_invoke("start_polling")
 
         self.monitor_btn.setText("Start Monitor")
         self._set_button_active(self.monitor_btn, False)
