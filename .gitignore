@@ -25,3 +25,6 @@ Thumbs.db
 data/*.csv
 data/*.json
 !data/.gitkeep
+
+# Runtime-mutated state (resonance frequency persisted by the app on every Find Peak)
+openqcm/data/resonance_config.json
