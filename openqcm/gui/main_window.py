@@ -627,7 +627,7 @@ class OpenQCMAerosolGUI(QMainWindow):
         cycle_grid.addWidget(QLabel("Waiting Time:"), 1, 0)
         self.wait_spin = QSpinBox()
         self.wait_spin.setRange(1, 600)
-        self.wait_spin.setValue(30)
+        self.wait_spin.setValue(60)
         self.wait_spin.setSuffix("s")
         self.wait_spin.setFixedWidth(65)
         self.wait_spin.setAlignment(Qt.AlignRight)

@@ -98,7 +98,7 @@ SAUERBREY_CONSTANT_10MHZ = 4.42e-9
 QUARTZ_AREA_CM2 = 0.196
 
 # Flow calibration defaults
-OUTLET_DIAMETER_MM = 4.0          # diametro foro uscita (mm)
+OUTLET_DIAMETER_MM = 0.8          # diametro foro uscita (mm)
 FLOW_CALIBRATION_FACTOR = 1.0     # K_cal (L/min per m/s), da calibrazione esterna
 
 # Rolling display window for real-time plots (seconds)
