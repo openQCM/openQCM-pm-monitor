@@ -64,12 +64,12 @@ from openqcm.gui.metric_card import MetricCard
 from openqcm.gui.sweep_worker import CycleState, SweepWorker
 from openqcm.core.tec_worker import TECWorker
 from openqcm.core.data_logger import DataLogger, LOG_COLUMNS, CYCLE_COLUMNS
+from openqcm.paths import resource_path, app_data_dir
 
-# Icons directory (sibling of gui/ inside the openqcm package)
-ICONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'icons')
-APP_ICON_PATH = os.path.join(ICONS_DIR, 'icon.png')
-APP_ICON_ICO = os.path.join(ICONS_DIR, 'icon.ico')
-LOGO_PATH = os.path.join(ICONS_DIR, 'openqcm-logo.png')
+# Asset paths — work in both source-tree dev and PyInstaller frozen bundles
+APP_ICON_PATH = resource_path('icons/icon.png')
+APP_ICON_ICO  = resource_path('icons/icon.ico')
+LOGO_PATH     = resource_path('icons/openqcm-logo.png')
 
 
 class OpenQCMAerosolGUI(QMainWindow):
@@ -1328,9 +1328,7 @@ class OpenQCMAerosolGUI(QMainWindow):
             return
 
         # Ask user for log file path before starting
-        project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        default_dir = os.path.join(project_dir, 'data')
-        os.makedirs(default_dir, exist_ok=True)
+        default_dir = app_data_dir()  # creates the dir if missing
         default_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.csv'
         default_path = os.path.join(default_dir, default_name)
 
@@ -1429,9 +1427,7 @@ class OpenQCMAerosolGUI(QMainWindow):
             return
 
         # Ask user for log file base name
-        project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        default_dir = os.path.join(project_dir, 'data')
-        os.makedirs(default_dir, exist_ok=True)
+        default_dir = app_data_dir()  # creates the dir if missing
         default_name = 'cycle_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.csv'
         default_path = os.path.join(default_dir, default_name)
 
@@ -2479,6 +2475,13 @@ def main():
 
     window = OpenQCMAerosolGUI()
     window.show()
+
+    # Close the PyInstaller splash screen if present (frozen builds only)
+    try:
+        import pyi_splash  # injected by PyInstaller when --splash is used
+        pyi_splash.close()
+    except ImportError:
+        pass
 
     sys.exit(app.exec_())
 

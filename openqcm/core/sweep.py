@@ -30,6 +30,7 @@ import json
 from collections import deque
 
 from openqcm.constants import SG_WINDOW_SIZE, SG_ORDER, SPLINE_FACTOR
+from openqcm.paths import app_data_dir
 
 
 # ===== AD8302 CONVERSION CONSTANTS =====
@@ -44,8 +45,11 @@ PHASE_SLOPE = 0.01  # V/degree
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration file for storing resonance frequency
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'resonance_config.json')
+# Configuration file for storing resonance frequency.
+# Lives next to the executable (frozen) or in <project>/data/ (dev) so the
+# value survives across runs even when the package is read-only (PyInstaller
+# --onefile extracts to a temp dir wiped on exit).
+CONFIG_FILE = os.path.join(app_data_dir(), 'resonance_config.json')
 
 class OpenQCMSweepEnhanced:
     """

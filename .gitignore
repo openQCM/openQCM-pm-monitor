@@ -4,8 +4,11 @@ __pycache__/
 *.pyo
 *.egg-info/
 *.egg
-dist/
+
+# PyInstaller build artefacts
 build/
+dist/
+*.spec~
 
 # Environments
 .env
