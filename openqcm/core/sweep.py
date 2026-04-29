@@ -19,7 +19,6 @@ Date: 2025-01-20
 
 import serial
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, savgol_filter
 from scipy.interpolate import UnivariateSpline
 from typing import Tuple, List, Optional, Dict, Deque
