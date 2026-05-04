@@ -63,6 +63,14 @@ The cycle state machine automates particulate deposition measurement:
 
 After WAITING, the measured `(f, D)` becomes the new reference for the next cycle (no second timed REFERENCE wait). Each cycle records: Δf, ΔD, Δm (Sauerbrey), volume sampled, concentration.
 
+## User Manual
+
+A printable end-user manual is available in the [`doc/`](doc/) folder:
+
+- [`doc/user_manual.pdf`](doc/user_manual.pdf) — printable PDF
+- [`doc/user_manual.docx`](doc/user_manual.docx) — Word source for further edits
+- [`doc/screenshots/`](doc/screenshots/) — GUI screenshots referenced by the manual
+
 ## Project Structure
 
 ```
