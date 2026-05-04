@@ -5,8 +5,8 @@
 #
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(4, 3, 1, 0),
-    prodvers=(4, 3, 1, 0),
+    filevers=(1, 0, 0, 0),
+    prodvers=(1, 0, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -21,12 +21,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName',      'Novaetech S.r.l.'),
           StringStruct('FileDescription',  'openQCM PM Monitor — atmospheric particulate sampler with QCM-D'),
-          StringStruct('FileVersion',      '4.3.1'),
+          StringStruct('FileVersion',      '1.0.0'),
           StringStruct('InternalName',     'openQCM-pm-monitor'),
           StringStruct('LegalCopyright',   '(c) Novaetech S.r.l. / openQCM Team'),
           StringStruct('OriginalFilename', 'openQCM-pm-monitor.exe'),
           StringStruct('ProductName',      'openQCM-pm-monitor'),
-          StringStruct('ProductVersion',   '4.3.1')
+          StringStruct('ProductVersion',   '1.0.0')
         ]
       )
     ]),

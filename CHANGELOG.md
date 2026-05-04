@@ -1,5 +1,56 @@
 # Changelog
 
+## [1.0.0] - 2026-04-28 — First public release
+
+First public release of **openQCM-pm-monitor**, the open-source desktop
+application for atmospheric particulate matter sampling with QCM-D technology.
+The internal version numbering (4.x) used during development is reset to
+**1.0.0** for the public release.
+
+### Highlights
+
+- **Real-time monitoring**: frequency, dissipation (PPM), deposited mass,
+  particulate concentration (µg/m³), velocity, volumetric flow (L/min) and
+  temperature, all in dedicated metric cards.
+- **Automated measurement cycles**: timed `REFERENCE → PUMP_ON → WAITING`
+  state machine with median-based phase aggregation (last 1/3 of accumulated
+  samples) for noise-robust Δf, ΔD, Δm.
+- **Particulate concentration calculation**: two flow modes
+  (analytical πD²/4 or calibrated K·v); volume from measured pump-on duration.
+- **Robust serial I/O**: single shared `threading.Lock` across SweepWorker,
+  TECWorker and main thread; bulk-read sweep parser drastically reduces
+  syscalls under USB pass-through (~1 s saved per Fine sweep on a Parallels
+  Windows VM).
+- **Async CSV logger**: daemon thread + `queue.Queue`; dual logging during
+  cycles (raw monitor + per-cycle results with `volume`, `concentration`).
+- **Rolling-window plots**: configurable `MONITOR_WINDOW_SECONDS` (default
+  1 hour) with time-based eviction.
+- **Trimmed-mean (10 %/10 %) temporal smoothing** on the live signal — outlier
+  robust without staircase artifacts.
+- **Auto-TEC at cycle start/stop**: TEC enabled at the current setpoint when
+  Start Cycle is pressed, disabled at Stop Cycle.
+- **Custom right-click plot menu**: Auto-scale / Reset Zoom / Pan Mode / Select
+  Mode (replaces the verbose default pyqtgraph context menu).
+- **Peak detection**: SG + spline + `scipy.signal.find_peaks` with prominence
+  threshold and phase-derivative cross-check.
+- **Teensy port filtering**: serial port combo lists only ports with the
+  Teensy USB Vendor ID (`0x16C0`).
+- **Windows distribution**: PyInstaller one-file build with splash screen
+  (logo openQCM), bundled icons, version metadata, build script
+  (`build_windows.bat`).
+
+### Hardware support
+
+- openQCM Q-1 PM Aerosol head with Teensy 4.0 firmware v0.2.2-PM
+- 5 MHz / 10 MHz AT-cut quartz crystals
+- MTD415T TEC controller
+- Renesas FS3000 air velocity sensor (m/s)
+
+### Distribution
+
+- Source repository: https://github.com/openQCM/openQCM-pm-monitor
+- Windows binary: `openQCM-pm-monitor.exe` (one-file, no installer required)
+
 ## [4.3.1] - 2026-04-17
 
 ### Serial I/O Consolidation (Robustness Overhaul)
