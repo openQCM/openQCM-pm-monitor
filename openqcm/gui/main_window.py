@@ -1693,15 +1693,15 @@ class OpenQCMAerosolGUI(QMainWindow):
                 'date': now_dt.strftime('%Y-%m-%d'),
                 'time': now_dt.strftime('%H:%M:%S.%f')[:-3],
                 'cycle': str(self.cycle_count),
-                'frequency': f"{freq:.2f}",
-                'dissipation': f"{diss * 1e6:.6f}",
-                'flow': f"{v_avg:.3f}",
-                'temperature': f"{self.current_temperature:.2f}",
-                'delta_f': f"{delta_f:.2f}",
-                'delta_d': f"{delta_d:.6f}",
-                'delta_m': f"{delta_m:.4f}",
-                'volume': f"{volume_m3 * 1e6:.4f}",
-                'concentration': f"{concentration:.2f}",
+                'frequency_Hz': f"{freq:.2f}",
+                'dissipation_ppm': f"{diss * 1e6:.6f}",
+                'velocity_m_s': f"{v_avg:.3f}",
+                'temperature_C': f"{self.current_temperature:.2f}",
+                'delta_f_Hz': f"{delta_f:.2f}",
+                'delta_d_ppm': f"{delta_d:.6f}",
+                'delta_m_ng_cm2': f"{delta_m:.4f}",
+                'volume_cm3': f"{volume_m3 * 1e6:.4f}",
+                'concentration_ug_m3': f"{concentration:.2f}",
             })
 
         # The measured values become the reference for the next cycle
@@ -1931,12 +1931,11 @@ class OpenQCMAerosolGUI(QMainWindow):
                 self.data_logger.enqueue({
                     'date': now_dt.strftime('%Y-%m-%d'),
                     'time': now_dt.strftime('%H:%M:%S.%f')[:-3],
-                    'relative_time': f"{t:.3f}",
-                    'frequency': f"{freq:.2f}",
-                    'dissipation': f"{diss_ppm:.6f}",
-                    'mass': f"{mass:.4f}",
-                    'flow': f"{self.current_flow:.3f}",
-                    'temperature': f"{self.current_temperature:.2f}",
+                    'relative_time_s': f"{t:.3f}",
+                    'frequency_Hz': f"{freq:.2f}",
+                    'dissipation_ppm': f"{diss_ppm:.6f}",
+                    'velocity_m_s': f"{self.current_flow:.3f}",
+                    'temperature_C': f"{self.current_temperature:.2f}",
                 })
 
             # Update UI cards

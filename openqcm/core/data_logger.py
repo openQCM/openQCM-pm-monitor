@@ -15,18 +15,22 @@ import queue
 import threading
 
 
+# Column names embed the SI / SI-derived unit as a suffix so any downstream
+# tool (Excel, pandas, MATLAB, R, …) can read the file without an external
+# legend. Naming follows the convention `<quantity>_<unit>` with ASCII-safe
+# unit tokens (`_C` for °C, `_ug_m3` for µg/m³, `_ng_cm2` for ng/cm², ...).
 LOG_COLUMNS = [
-    'date', 'time', 'relative_time',
-    'frequency', 'dissipation',
-    'flow', 'temperature',
+    'date', 'time', 'relative_time_s',
+    'frequency_Hz', 'dissipation_ppm',
+    'velocity_m_s', 'temperature_C',
 ]
 
 CYCLE_COLUMNS = [
     'date', 'time', 'cycle',
-    'frequency', 'dissipation',
-    'flow', 'temperature',
-    'delta_f', 'delta_d', 'delta_m',
-    'volume', 'concentration',
+    'frequency_Hz', 'dissipation_ppm',
+    'velocity_m_s', 'temperature_C',
+    'delta_f_Hz', 'delta_d_ppm', 'delta_m_ng_cm2',
+    'volume_cm3', 'concentration_ug_m3',
 ]
 
 

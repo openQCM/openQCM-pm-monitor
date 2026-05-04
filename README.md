@@ -134,6 +134,46 @@ The Teensy firmware (v0.2.2-PM) communicates via USB serial at 115200 baud:
 - **Sampled volume**: `V = Q × t_pump` (t_pump measured, not nominal)
 - **Concentration**: `C = (Δm × A_quartz) / V` (µg/m³)
 
+## CSV output format
+
+CSV column names embed the SI / SI-derived unit as a suffix
+(`<quantity>_<unit>`) so the file is self-describing in any tool
+(Excel, pandas, R, MATLAB, …) without needing an external legend.
+
+### Monitoring CSV (every sweep)
+
+Created when **Start Monitor** is pressed, or as `<name>_raw.csv`
+during a measurement cycle.
+
+| Column | Unit | Notes |
+|---|---|---|
+| `date` | YYYY-MM-DD | local date |
+| `time` | HH:MM:SS.fff | local time, millisecond precision |
+| `relative_time_s` | s | seconds since the monitor session started |
+| `frequency_Hz` | Hz | resonance frequency (smoothed: trimmed-mean of last 10 sweeps) |
+| `dissipation_ppm` | ppm | D = Δf₋₃dB / f₀ × 10⁶ |
+| `velocity_m_s` | m/s | FS3000 sensor reading (point velocity, **not** volumetric flow rate) |
+| `temperature_C` | °C | from sweep metadata |
+
+### Cycle CSV (one row per completed cycle)
+
+Created alongside the monitoring CSV when a measurement cycle is started.
+
+| Column | Unit | Notes |
+|---|---|---|
+| `date` | YYYY-MM-DD | local date of the cycle finalisation |
+| `time` | HH:MM:SS.fff | local time of the cycle finalisation |
+| `cycle` | count | sequential cycle number, starts at 1 |
+| `frequency_Hz` | Hz | measured frequency (median over last 1/3 of WAITING-phase samples) |
+| `dissipation_ppm` | ppm | measured dissipation (median over same samples) |
+| `velocity_m_s` | m/s | average velocity during the PUMP_ON phase |
+| `temperature_C` | °C | last reading at finalisation |
+| `delta_f_Hz` | Hz | f − f₀ (measured − reference) |
+| `delta_d_ppm` | ppm | D − D₀ |
+| `delta_m_ng_cm2` | ng/cm² | Sauerbrey mass: Δm = −Δf × C × 10⁹ |
+| `volume_cm3` | cm³ | sampled air volume = Q × t_pump (measured) |
+| `concentration_ug_m3` | µg/m³ | C = (Δm × A_quartz) / V |
+
 ## Architecture Highlights
 
 - **Three-thread design**: GUI main thread + SweepWorker (QThread) + TECWorker (QThread); single `threading.Lock` for serial coordination
